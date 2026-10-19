@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blockhaven</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <!-- Start menu: avatar builder + map picker -->
+    <div id="menu">
+      <div class="card">
+        <h1>Blockhaven</h1>
+        <p class="sub" id="menu-sub">Build an avatar, pick a map, play with friends.</p>
+
+        <div class="cols">
+          <div class="col">
+            <canvas id="preview" width="220" height="260"></canvas>
+          </div>
+          <div class="col grow">
+            <label class="field">Name
+              <input id="name" maxlength="16" placeholder="Your name" autocomplete="off" />
+            </label>
+            <div class="colors">
+              <label>Skin <input type="color" id="c-skin" /></label>
+              <label>Hair <input type="color" id="c-hair" /></label>
+              <label>Shirt <input type="color" id="c-shirt" /></label>
+              <label>Pants <input type="color" id="c-pants" /></label>
+            </div>
+            <button type="button" id="randomize" class="ghost">Randomize look</button>
+          </div>
+        </div>
+
+        <div id="maps-wrap">
+          <h2>Choose a map</h2>
+          <div class="maps" id="maps"></div>
+        </div>
+
+        <label class="field" id="room-field">Join a friend's room (optional)
+          <input id="room" maxlength="12" placeholder="room code" autocomplete="off" />
+        </label>
+
+        <button type="button" id="play" class="primary">Play</button>
+        <p class="err" id="menu-err"></p>
+        <p class="hint">WASD move · Space jump · F fly · Click break · Right-click place · 1-9 / wheel pick block · Enter chat</p>
+      </div>
+    </div>
+
+    <!-- In-game HUD -->
+    <div id="hud" hidden>
+      <div id="crosshair"></div>
+      <div id="topbar">
+        <span id="room-label"></span>
+        <button type="button" id="invite">Copy invite link</button>
+      </div>
+      <div id="players"></div>
+      <div id="chat-log"></div>
+      <input id="chat-input" maxlength="200" placeholder="Say something..." autocomplete="off" hidden />
+      <div id="hotbar"></div>
+      <div id="paused" hidden>Click to play</div>
+      <div id="toast" hidden></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
