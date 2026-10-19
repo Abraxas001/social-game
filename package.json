@@ -1,0 +1,19 @@
+{
+  "name": "social-game",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A browser-based, block-world social sandbox: create an avatar, pick a map, play together.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w @sg/server\" \"npm run dev -w @sg/client\"",
+    "build": "npm run build -w @sg/client",
+    "start": "npm run start -w @sg/server",
+    "typecheck": "npm run typecheck -ws --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "typescript": "^5.6.0"
+  }
+}
