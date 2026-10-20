@@ -20,6 +20,9 @@ export class LocalPlayer {
   onGround = false;
   flying = false;
   readonly keys = new Set<string>();
+  /** Analog movement from a touch joystick, each -1..1 (negative z is forward). */
+  analogX = 0;
+  analogZ = 0;
 
   get eye(): THREE.Vector3 {
     return new THREE.Vector3(this.pos.x, this.pos.y + EYE_HEIGHT, this.pos.z);
@@ -60,11 +63,16 @@ export class LocalPlayer {
       if (this.keys.has("KeyS")) mz += 1;
       if (this.keys.has("KeyA")) mx -= 1;
       if (this.keys.has("KeyD")) mx += 1;
+      mx += this.analogX;
+      mz += this.analogZ;
     }
-    const len = Math.hypot(mx, mz) || 1;
-    mx /= len; mz /= len;
+    // Keyboard input is normalised to length 1; a partly tilted joystick stays below 1.
+    const len = Math.hypot(mx, mz);
+    if (len > 1) { mx /= len; mz /= len; }
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
-    const speed = this.flying ? FLY : this.keys.has("ShiftLeft") && controlsActive ? SPRINT : WALK;
+    const joySprint = Math.hypot(this.analogX, this.analogZ) > 0.95;
+    const sprinting = controlsActive && (this.keys.has("ShiftLeft") || joySprint);
+    const speed = this.flying ? FLY : sprinting ? SPRINT : WALK;
     this.vel.x = (mx * cos + mz * sin) * speed;
     this.vel.z = (-mx * sin + mz * cos) * speed;
 

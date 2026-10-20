@@ -69,6 +69,23 @@ Free-tier trade-offs:
 | 1-9 / mouse wheel | Choose block |
 | Enter | Chat |
 
+### Touch controls (phones and tablets)
+
+| Gesture | Action |
+| --- | --- |
+| Left thumb, bottom-left area | Move (floating joystick; push it all the way to sprint) |
+| Drag anywhere else | Look around |
+| Tap a block | Place or break it (whichever mode is on) |
+| Hold a block | Do the opposite action |
+| Pickaxe / brick button | Switch between break and place mode |
+| Jump button (hold) | Jump, or fly up |
+| Bird button | Toggle flying (an arrow appears to fly down) |
+| Speech bubble | Chat |
+| Tap a hotbar slot | Choose a block |
+
+Touch controls switch on automatically on touch devices. For a full-screen
+experience on iPhone and iPad, use Share > Add to Home Screen.
+
 ## Layout
 
 ```
