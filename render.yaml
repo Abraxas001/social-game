@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: blockhaven-server
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start -w @sg/server
+    healthCheckPath: /health

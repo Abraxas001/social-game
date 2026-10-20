@@ -152,7 +152,10 @@ async function start(): Promise<void> {
   playBtn.textContent = "Connecting...";
   const net = new Net();
   try {
-    await net.connect();
+    await net.connect(undefined, (text) => {
+      menuErr.textContent = text;
+    });
+    menuErr.textContent = "";
   } catch (e) {
     menuErr.textContent = (e as Error).message;
     playBtn.disabled = false;

@@ -29,6 +29,33 @@ Share the invite link (or the `?room=` code) with a friend on the same network.
 Set `VITE_WS_URL` (for example `wss://your-host`) if the server is not on the
 same hostname as the page.
 
+## Deploy for free
+
+The client is static files and the server is a long-running WebSocket process,
+so they go on two different free hosts.
+
+**1. Server on Render (free web service)**
+
+1. In Render, choose *New > Blueprint* and select this repo. It reads `render.yaml`.
+   (Or create a Web Service by hand: build `npm install`, start `npm run start -w @sg/server`, health check `/health`.)
+2. Copy the service URL, for example `https://blockhaven-server.onrender.com`.
+
+**2. Client on Vercel (Hobby plan)**
+
+1. Import the repo in Vercel. `vercel.json` sets the build and output folder.
+2. Add the environment variable `VITE_WS_URL=wss://blockhaven-server.onrender.com` (use your own URL, with `wss://`).
+3. Deploy.
+
+Free-tier trade-offs:
+
+- Render sleeps the server after 15 minutes without traffic. The first player
+  waits about a minute while it wakes; the client shows a message and retries.
+  Open WebSocket connections count as traffic, so it stays awake during play.
+- Rooms and block edits live in server memory, so they are lost when the server
+  restarts or sleeps. Saved worlds need a database (a later step).
+- Free instances are limited to one instance and 750 hours a month, which covers
+  one always-on service.
+
 ## Controls
 
 | Key | Action |
