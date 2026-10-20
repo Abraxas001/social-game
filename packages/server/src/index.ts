@@ -191,7 +191,8 @@ function removeClient(client: Client): void {
 // wake a sleeping free-tier instance before opening the WebSocket.
 const httpServer = createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  if (req.url === "/health") {
+  const path = (req.url ?? "").split("?")[0].replace(/\/{2,}/g, "/");
+  if (path === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
     return;
