@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   HEX_COLOR,
@@ -186,7 +187,20 @@ function removeClient(client: Client): void {
   if (room.clients.size === 0) rooms.delete(room.id);
 }
 
-const wss = new WebSocketServer({ port: PORT, maxPayload: 4096 });
+// Plain HTTP endpoint so hosts can health-check the service and clients can
+// wake a sleeping free-tier instance before opening the WebSocket.
+const httpServer = createServer((req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  if (req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
+    return;
+  }
+  res.writeHead(404, { "Content-Type": "text/plain" });
+  res.end("Not found");
+});
+
+const wss = new WebSocketServer({ server: httpServer, maxPayload: 4096 });
 
 wss.on("connection", (ws) => {
   let client: Client | null = null;
@@ -228,4 +242,6 @@ setInterval(() => {
   }
 }, 15_000);
 
-console.log(`[server] listening on ws://localhost:${PORT}`);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`[server] listening on port ${PORT} (ws + /health)`);
+});
