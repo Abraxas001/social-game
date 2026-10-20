@@ -1,10 +1,16 @@
 import type { ClientMsg, ServerMsg } from "@sg/shared";
 
 export function serverUrl(): string {
-  const env = import.meta.env.VITE_WS_URL as string | undefined;
-  if (env) return env;
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  return `${proto}://${location.hostname}:3001`;
+  const env = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
+  if (env) return env.replace(/\/+$/, "");
+  // On a deployed https site there is no sensible default: the server lives on
+  // another host, so say so instead of waiting on a URL that can never answer.
+  if (location.protocol === "https:") {
+    throw new Error(
+      "The game server address is not set. In Vercel, add VITE_WS_URL (for example wss://your-server.onrender.com) and redeploy.",
+    );
+  }
+  return `ws://${location.hostname}:3001`;
 }
 
 export class Net {
@@ -27,15 +33,25 @@ export class Net {
         const res = await fetch(`${base}/health`, { signal: ctrl.signal });
         clearTimeout(timer);
         if (res.ok) return;
-      } catch {
+        // A 4xx means we reached a server that is not ours (wrong address),
+        // so waiting will not help. 5xx is what a waking host answers with.
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error(
+            `Reached ${base} but /health returned ${res.status}. Check that VITE_WS_URL points at the game server.`,
+          );
+        }
+      } catch (e) {
         clearTimeout(timer);
+        if (e instanceof Error && e.message.startsWith("Reached ")) throw e;
       }
       if (Date.now() > deadline) {
-        throw new Error("The server is still waking up. Please try again in a minute.");
+        throw new Error(
+          `Could not reach ${base} after 90 seconds. Check that the server is deployed and that VITE_WS_URL is correct.`,
+        );
       }
       if (!waking) {
         waking = true;
-        onStatus?.("Waking up the free server... this can take about a minute.");
+        onStatus?.(`Waking up the free server at ${new URL(base).host}... this can take about a minute.`);
       }
       await new Promise((r) => setTimeout(r, 2500));
     }
