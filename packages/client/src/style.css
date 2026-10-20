@@ -77,3 +77,53 @@ button.primary:hover { filter: brightness(1.08); }
 #paused { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); background: rgba(15,20,32,0.8); padding: 14px 22px; border-radius: 12px; font-size: 18px; }
 #toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: rgba(15,20,32,0.85); padding: 8px 14px; border-radius: 10px; font-size: 14px; }
 [hidden] { display: none !important; }
+
+/* ---------------------------------------------------------- touch controls */
+#game, #touch-ui { touch-action: none; }
+#hud, #touch-ui { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#touch-ui { position: absolute; inset: 0; pointer-events: none; }
+#touch-ui[hidden] { display: none; }
+.joy {
+  position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(15, 20, 32, 0.25); opacity: 0.55;
+}
+.joy.active { opacity: 1; background: rgba(15, 20, 32, 0.4); }
+.joy-knob {
+  position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.55); border: 2px solid rgba(255, 255, 255, 0.8);
+}
+.tbtn {
+  pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent;
+  width: 46px; height: 46px; padding: 0; border-radius: 50%; font-size: 20px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.45); background: rgba(15, 20, 32, 0.6);
+}
+.tbtn:hover { border-color: rgba(255, 255, 255, 0.45); }
+.tbtn.on { background: rgba(79, 179, 107, 0.8); border-color: #fff; }
+.tbtn[hidden] { display: none; }
+.tjump {
+  position: absolute; width: 68px; height: 68px; font-size: 14px; font-weight: 700;
+  right: calc(72px + env(safe-area-inset-right)); bottom: calc(72px + env(safe-area-inset-bottom));
+}
+.tcol {
+  position: absolute; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px;
+  right: calc(14px + env(safe-area-inset-right));
+}
+body.touch #crosshair { display: none; }
+body.touch #paused { display: none; }
+body.touch #players { right: calc(68px + env(safe-area-inset-right)); font-size: 12px; padding: 6px 10px; }
+body.touch #chat-log { bottom: 84px; width: min(360px, 55vw); }
+body.touch #hotbar { bottom: calc(10px + env(safe-area-inset-bottom)); pointer-events: auto; }
+#hotbar { pointer-events: auto; }
+.slot { touch-action: none; }
+
+@media (max-width: 700px) {
+  #hotbar { gap: 4px; }
+  .slot { width: 34px; height: 34px; border-width: 2px; }
+  .slot i { inset: 4px; }
+}
+@media (max-height: 480px) {
+  .tbtn { width: 40px; height: 40px; font-size: 17px; }
+  .tcol { gap: 8px; }
+  .tjump { width: 60px; height: 60px; bottom: calc(60px + env(safe-area-inset-bottom)); }
+}

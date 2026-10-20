@@ -14,6 +14,7 @@ import {
 import { addLights, animateWalk, buildAvatar, createPreview, makeNameTag, type Avatar } from "./avatar";
 import { Net } from "./net";
 import { LocalPlayer } from "./player";
+import { isCoarsePointer, setupTouch } from "./touch";
 import { World, raycast } from "./world";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -82,6 +83,13 @@ const colorInputs: Record<keyof Look, HTMLInputElement> = {
 };
 
 nameInput.value = profile.name;
+if (isCoarsePointer()) {
+  const hint = document.getElementById("hint");
+  if (hint) {
+    hint.textContent =
+      "Left thumb: move · Drag right side: look · Tap: place or break · Hold: the other · Buttons: jump, fly, chat";
+  }
+}
 for (const k of Object.keys(colorInputs) as (keyof Look)[]) colorInputs[k].value = profile.look[k];
 if (urlRoom) {
   roomInput.value = urlRoom;
@@ -195,7 +203,7 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
   hud.hidden = false;
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isCoarsePointer() ? 1.5 : 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(mapDef.sky);
@@ -270,7 +278,7 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
     chatOpen = false;
     chatInput.hidden = true;
     chatInput.blur();
-    if (relock) canvas.requestPointerLock();
+    if (relock && !touch.enabled) canvas.requestPointerLock();
   }
   chatInput.addEventListener("keydown", (e) => {
     e.stopPropagation();
@@ -376,6 +384,10 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
     const num = document.createElement("em");
     num.textContent = String(i + 1);
     slot.append(swatch, num);
+    slot.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      select(i);
+    });
     hotbar.appendChild(slot);
     slots.push(slot);
   });
@@ -388,10 +400,34 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
   // ---- input
   const pausedEl = $("paused");
   const locked = () => document.pointerLockElement === canvas;
+  const touch = setupTouch({
+    player,
+    canvas,
+    onAction: (mode, nx, ny) => {
+      // Cast a ray through the tapped point instead of the screen centre.
+      camera.updateMatrixWorld();
+      const dir = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize();
+      const hit = raycast(world, player.eye, dir, REACH);
+      if (!hit) return;
+      if (mode === "break") breakBlock(hit.hit);
+      else placeBlock(hit.prev);
+    },
+    onChat: () => openChat(),
+    isChatOpen: () => chatOpen,
+    closeChat: () => closeChat(false),
+    onEnable: () => {
+      pausedEl.hidden = true;
+    },
+    onMode: (m) =>
+      toast(m === "break" ? "Tap breaks blocks, hold places" : "Tap places blocks, hold breaks"),
+  });
+  /** Controls are live with the mouse captured, or any time touch controls are on. */
+  const active = () => locked() || touch.enabled;
   canvas.addEventListener("click", () => {
-    if (!locked() && !chatOpen) canvas.requestPointerLock();
+    if (!touch.enabled && !locked() && !chatOpen) canvas.requestPointerLock();
   });
   pausedEl.hidden = false;
+  if (isCoarsePointer()) touch.enable();
   document.addEventListener("pointerlockchange", () => {
     pausedEl.hidden = locked() || chatOpen;
     if (!locked()) player.keys.clear();
@@ -408,7 +444,7 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
       openChat();
       return;
     }
-    if (!locked()) return;
+    if (!active()) return;
     if (e.code === "KeyF" && !e.repeat) player.flying = !player.flying;
     if (e.code.startsWith("Digit")) {
       const n = Number(e.code.slice(5));
@@ -423,22 +459,23 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
     if (locked()) select(selected + (e.deltaY > 0 ? 1 : -1));
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  function breakBlock([x, y, z]: [number, number, number]): void {
+    world.set(x, y, z, 0);
+    net.send({ t: "block", x, y, z, id: 0 });
+  }
+  function placeBlock([x, y, z]: [number, number, number]): void {
+    if (world.get(x, y, z) !== 0 || y < 0 || y >= 32) return;
+    if (player.intersectsBlock(x, y, z)) return;
+    const id = BLOCKS[selected].id;
+    world.set(x, y, z, id);
+    net.send({ t: "block", x, y, z, id });
+  }
   document.addEventListener("mousedown", (e) => {
     if (!locked()) return;
     const hit = raycast(world, player.eye, player.forward(), REACH);
     if (!hit) return;
-    if (e.button === 0) {
-      const [x, y, z] = hit.hit;
-      world.set(x, y, z, 0);
-      net.send({ t: "block", x, y, z, id: 0 });
-    } else if (e.button === 2) {
-      const [x, y, z] = hit.prev;
-      if (world.get(x, y, z) !== 0 || y < 0 || y >= 32) return;
-      if (player.intersectsBlock(x, y, z)) return;
-      const id = BLOCKS[selected].id;
-      world.set(x, y, z, id);
-      net.send({ t: "block", x, y, z, id });
-    }
+    if (e.button === 0) breakBlock(hit.hit);
+    else if (e.button === 2) placeBlock(hit.prev);
   });
 
   // ---- main loop
@@ -458,7 +495,8 @@ function runGame(net: Net, init: Extract<ServerMsg, { t: "init" }>, myLook: Look
     last = now;
     const time = now / 1000;
 
-    player.update(dt, world, locked());
+    player.update(dt, world, active());
+    touch.sync();
     world.flush();
 
     camera.position.copy(player.eye);
